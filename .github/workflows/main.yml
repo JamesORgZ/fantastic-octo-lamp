@@ -28,16 +28,17 @@ jobs:
           netsh advfirewall firewall add rule name="RDP-Tailscale" `
           dir=in action=allow protocol=TCP localport=3389
 
-          # Restart Remote Desktop service
+          # Restart the Remote Desktop service
           Restart-Service -Name TermService -Force
 
       - name: Create RDP User with Secure Password
         run: |
           Add-Type -AssemblyName System.Security
           $charSet = @{
-            Upper = [char[]](65..90)
-            Lower = [char[]](97..122)
-            Number = [char[]](48..57)
-            Special = ([char[]](33..47) + [char[]](58..64) + [char[]](91..96) + [char[]](123..126))
+            Upper = [char[]](65..90) # A-Z
+            Lower = [char[]](97..122) # a-z
+            Number = [char[]](48..57) # 0-9
+            Special = ([char[]](33..47) + [char[]](58..64) +
+            [char[]](91..96) + [char[]](123..126)) # Special characters
           }
           $rawPassword = @()
