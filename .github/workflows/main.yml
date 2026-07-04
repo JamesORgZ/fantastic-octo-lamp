@@ -21,24 +21,38 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
           -Name "SecurityLayer" -Value 0 -Force
 
-          # Remove any existing rule with the same name to avoid duplication
+          # Remove existing firewall rule (avoid duplication)
           netsh advfirewall firewall delete rule name="RDP-Tailscale"
 
-          # For testing, allow any incoming connection on port 3389
+          # Allow RDP port
           netsh advfirewall firewall add rule name="RDP-Tailscale" `
           dir=in action=allow protocol=TCP localport=3389
 
-          # Restart the Remote Desktop service
+          # Restart Remote Desktop service
           Restart-Service -Name TermService -Force
 
       - name: Create RDP User with Secure Password
         run: |
           Add-Type -AssemblyName System.Security
-          $charSet = @{
-            Upper = [char[]](65..90) # A-Z
-            Lower = [char[]](97..122) # a-z
-            Number = [char[]](48..57) # 0-9
-            Special = ([char[]](33..47) + [char[]](58..64) +
-            [char[]](91..96) + [char[]](123..126)) # Special characters
-          }
-          $rawPassword = @()
+
+          # Generate secure random password
+          $length = 16
+          $chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
+          $password = -join ((1..$length) | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
+
+          $username = "rdpuser"
+
+          # Create local user
+          net user $username $password /add
+
+          # Add user to Administrators group
+          net localgroup administrators $username /add
+
+          # Enable Remote Desktop users group access
+          net localgroup "Remote Desktop Users" $username /add
+
+          # Output credentials (visible in logs)
+          Write-Output "=============================="
+          Write-Output "Username: $username"
+          Write-Output "Password: $password"
+          Write-Output "=============================="
